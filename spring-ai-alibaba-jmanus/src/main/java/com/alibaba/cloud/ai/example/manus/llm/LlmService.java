@@ -15,8 +15,11 @@
  */
 package com.alibaba.cloud.ai.example.manus.llm;
 
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.alibaba.cloud.ai.memory.jdbc.MysqlChatMemory;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -26,7 +29,7 @@ import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
-import org.springframework.ai.tool.ToolCallbackProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -297,25 +300,34 @@ public class LlmService {
 
 	private ChatMemory memory = new InMemoryChatMemory();
 
-	private final ChatClient planningChatClient;
+	private ChatClient planningChatClient;
 
-	private ChatMemory planningMemory = new InMemoryChatMemory();
+	@Value("${spring.datasource.username}")
+	private String username;
 
-	private final ChatClient finalizeChatClient;
+	@Value("${spring.datasource.password}")
+	private String password;
+
+	@Value("${spring.datasource.url}")
+	private String jdbcUrl;
+
+	private ChatMemory planningMemory;
+
+	private ChatClient finalizeChatClient;
 
 	// private ChatMemory finalizeMemory = new InMemoryChatMemory();
 
 	private final ChatModel chatModel;
 
-	public LlmService(ChatModel chatModel) {
-		this.chatModel = chatModel;
+	@PostConstruct
+	public void init() {
 		// 执行和总结规划，用相同的memory
 		this.planningChatClient = ChatClient.builder(chatModel)
-			.defaultSystem(PLANNING_SYSTEM_PROMPT)
-			.defaultAdvisors(new MessageChatMemoryAdvisor(planningMemory))
-			.defaultAdvisors(new SimpleLoggerAdvisor())
-			.defaultOptions(OpenAiChatOptions.builder().temperature(0.1).build())
-			.build();
+				.defaultSystem(PLANNING_SYSTEM_PROMPT)
+				.defaultAdvisors(new MessageChatMemoryAdvisor(getPlanningMemory()))
+				.defaultAdvisors(new SimpleLoggerAdvisor())
+				.defaultOptions(OpenAiChatOptions.builder().temperature(0.1).build())
+				.build();
 
 		// // 每个agent执行过程中，用独立的memroy
 		// this.chatClient = ChatClient.builder(chatModel)
@@ -325,10 +337,13 @@ public class LlmService {
 		// .build();
 
 		this.finalizeChatClient = ChatClient.builder(chatModel)
-			.defaultAdvisors(new MessageChatMemoryAdvisor(planningMemory))
-			.defaultAdvisors(new SimpleLoggerAdvisor())
-			.build();
+				.defaultAdvisors(new MessageChatMemoryAdvisor(getPlanningMemory()))
+				.defaultAdvisors(new SimpleLoggerAdvisor())
+				.build();
+	}
 
+	public LlmService(ChatModel chatModel) {
+		this.chatModel = chatModel;
 	}
 
 	public static class AgentChatClientWrapper {
@@ -381,6 +396,9 @@ public class LlmService {
 	}
 
 	public ChatMemory getPlanningMemory() {
+		if (Objects.isNull(planningMemory)) {
+			planningMemory = new MysqlChatMemory(username, password, jdbcUrl);
+		}
 		return planningMemory;
 	}
 

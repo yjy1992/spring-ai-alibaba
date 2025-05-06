@@ -10,19 +10,26 @@ spring:
       api-key: ${AI_DASHSCOPE_API_KEY}
       chat:
         options:
-          model: qwen-max-latest
+          model: qwen-max-2025-01-25
     mcp:
       client:
         enabled: false
-  # H2 数据库配置
+  # mysql 数据库配置
   datasource:
-    url: jdbc:h2:file:./h2-data/openmanus_db;MODE=MYSQL;DATABASE_TO_LOWER=TRUE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: $FSD#@!@#!#$!12341234
+    url: jdbc:mysql://127.0.0.1:3306/openmanus_db?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=GMT%2B8&tinyInt1isBit=false
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: 123456
+    type: com.alibaba.druid.pool.DruidDataSource
+  # H2 数据库配置
+#  datasource:
+#    url: jdbc:h2:file:./h2-data/openmanus_db;MODE=MYSQL;DATABASE_TO_LOWER=TRUE
+#    driver-class-name: org.h2.Driver
+#    username: sa
+#    password: $FSD#@!@#!#$!12341234
   # JPA 配置
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
+#    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: update
     show-sql: true
@@ -30,7 +37,7 @@ spring:
       hibernate:
         format_sql: true
   # H2 控制台配置
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+#  h2:
+#    console:
+#      enabled: true
+#      path: /h2-console
